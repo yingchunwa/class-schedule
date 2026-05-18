@@ -40,18 +40,27 @@
 
     <div class="card">
       <h2>课前提醒</h2>
-      <p class="muted">两种方式，推荐第一种。</p>
+      <p class="muted">三种方式，推荐第三种（订阅 URL）。</p>
       <div style="margin: 10px 0;">
-        <label class="muted small" style="display:block; margin-bottom:4px;">日历分类名（导入后在系统日历里显示成单独的一类）</label>
+        <label class="muted small" style="display:block; margin-bottom:4px;">日历分类名（订阅 URL 后显示成独立日历）</label>
         <input type="text" id="calendar-name" placeholder="我的课表" style="width: 100%;" />
       </div>
-      <button id="export-ics" class="btn primary block">导出到系统日历 (.ics)</button>
-      <p class="muted small">下载后在手机上点开，OPPO 日历会自动导入并发送原生提醒。最可靠。</p>
+      <button id="export-ics" class="btn block">① 下载 .ics 文件（直接导入）</button>
+      <p class="muted small">手机上点开直接导入。⚠️ OPPO 日历会把所有事件归到"默认日程"，不能分类。</p>
       <hr />
       <label class="row">
         <input type="checkbox" id="enable-notifs" />
-        <span>在浏览器打开时也推送通知（不可靠，仅作补充）</span>
+        <span>② 浏览器通知（仅 app 打开时可靠，补充用）</span>
       </label>
+      <hr />
+      <p class="small"><b>③ 订阅 URL（推荐）</b> — OPPO 日历会显示成独立分类，课表更新时自动同步：</p>
+      <ol class="muted small" style="padding-left:18px; margin:6px 0;">
+        <li>下载下面的 calendar.ics 文件</li>
+        <li>把它放到你 GitHub 仓库根目录，push 到 GitHub</li>
+        <li>OPPO 日历 → 日程同步与导入 → URL 日历 → 粘贴：<br>
+            <code id="cal-url" style="font-size:11px; word-break:break-all; user-select:all;">https://&lt;你的GitHub用户名&gt;.github.io/class-schedule/calendar.ics</code></li>
+      </ol>
+      <button id="export-ics-named" class="btn primary block">下载 calendar.ics（用于订阅）</button>
     </div>
 
     <div class="card">

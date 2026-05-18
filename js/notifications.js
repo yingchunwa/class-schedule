@@ -5,11 +5,14 @@ const Notifs = (() => {
 
   function pad2(n) { return String(n).padStart(2, '0'); }
 
-  function icsDateTime(dateIso, hhmm) {
-    // local time floating (no TZID) — system calendar interprets as device local time
-    const [y, m, d] = dateIso.split('-');
-    const [hh, mm] = hhmm.split(':');
-    return `${y}${m}${d}T${hh}${mm}00`;
+  // 把北京时间 (UTC+8) 转成 UTC 时间字符串 YYYYMMDDTHHMMSSZ。
+  // 这样不管对方日历认不认 TZID/VTIMEZONE，都不会出现 +8 小时偏移。
+  function icsDateTimeUtc(dateIso, hhmm) {
+    const [y, m, d] = dateIso.split('-').map(Number);
+    const [hh, mm] = hhmm.split(':').map(Number);
+    const utc = new Date(Date.UTC(y, m - 1, d, hh - 8, mm));
+    return `${utc.getUTCFullYear()}${pad2(utc.getUTCMonth() + 1)}${pad2(utc.getUTCDate())}` +
+           `T${pad2(utc.getUTCHours())}${pad2(utc.getUTCMinutes())}00Z`;
   }
 
   function escapeIcs(s) {
@@ -20,7 +23,6 @@ const Notifs = (() => {
     const minutesBefore = opts.minutesBefore ?? 30;
     const fromIso = opts.fromIso;
     const calName = (opts.calendarName || '我的课表').trim() || '我的课表';
-    const TZID = 'Asia/Shanghai';
     const lines = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
@@ -30,17 +32,7 @@ const Notifs = (() => {
       'X-WR-CALNAME:' + escapeIcs(calName),
       'X-WR-CALDESC:' + escapeIcs(calName),
       'NAME:' + escapeIcs(calName),
-      'X-WR-TIMEZONE:' + TZID,
-      // 中国不使用夏令时，VTIMEZONE 只需一个 STANDARD 块
-      'BEGIN:VTIMEZONE',
-      'TZID:' + TZID,
-      'BEGIN:STANDARD',
-      'DTSTART:19700101T000000',
-      'TZOFFSETFROM:+0800',
-      'TZOFFSETTO:+0800',
-      'TZNAME:CST',
-      'END:STANDARD',
-      'END:VTIMEZONE'
+      'X-WR-TIMEZONE:Asia/Shanghai'
     ];
     const stamp = new Date().toISOString().replace(/[-:.]/g, '').slice(0, 15) + 'Z';
     for (const c of schedule.classes) {
@@ -50,8 +42,8 @@ const Notifs = (() => {
         'BEGIN:VEVENT',
         `UID:${escapeIcs(uid)}`,
         `DTSTAMP:${stamp}`,
-        `DTSTART;TZID=${TZID}:${icsDateTime(c.date, c.startTime)}`,
-        `DTEND;TZID=${TZID}:${icsDateTime(c.date, c.endTime)}`,
+        `DTSTART:${icsDateTimeUtc(c.date, c.startTime)}`,
+        `DTEND:${icsDateTimeUtc(c.date, c.endTime)}`,
         `SUMMARY:${escapeIcs(c.course)}`,
         `LOCATION:${escapeIcs(c.room)}`,
         `DESCRIPTION:${escapeIcs('第 ' + c.week + ' 周')}`,
@@ -74,8 +66,14 @@ const Notifs = (() => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    const safeName = (opts.calendarName || '我的课表').replace(/[\\/:*?"<>|]/g, '');
-    a.download = `${safeName}-${new Date().toISOString().slice(0, 10)}.ics`;
+    let filename;
+    if (opts.filename) {
+      filename = opts.filename;
+    } else {
+      const safeName = (opts.calendarName || '我的课表').replace(/[\\/:*?"<>|]/g, '');
+      filename = `${safeName}-${new Date().toISOString().slice(0, 10)}.ics`;
+    }
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);

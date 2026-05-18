@@ -139,6 +139,7 @@
     document.getElementById('excel-input').addEventListener('change', onExcelPicked);
     document.getElementById('save-week-one').addEventListener('click', onSaveWeekOne);
     document.getElementById('export-ics').addEventListener('click', onExportIcs);
+    document.getElementById('export-ics-named').addEventListener('click', onExportIcsNamed);
     document.getElementById('enable-notifs').addEventListener('change', onToggleNotifs);
     document.getElementById('clear-data').addEventListener('click', onClearData);
   }
@@ -202,14 +203,17 @@
     render();
   }
 
-  function onExportIcs() {
-    if (!state.schedule) { toast('请先导入课表'); return; }
-    // 把当前输入框里的分类名先存起来
+  function persistCalendarName() {
     const nameInput = document.getElementById('calendar-name').value.trim();
     if (nameInput && nameInput !== state.settings.calendarName) {
       state.settings.calendarName = nameInput;
       Storage.saveSettings(state.settings);
     }
+  }
+
+  function onExportIcs() {
+    if (!state.schedule) { toast('请先导入课表'); return; }
+    persistCalendarName();
     const todayIso = Scheduler.isoDate(new Date());
     Notifs.downloadICS(state.schedule, {
       fromIso: todayIso,
@@ -217,6 +221,18 @@
       calendarName: state.settings.calendarName || '我的课表'
     });
     toast('已生成 .ics，请打开它导入到日历');
+  }
+
+  // 给订阅 URL 用：固定文件名 calendar.ics，导出全部课程（不只是今天起的）
+  function onExportIcsNamed() {
+    if (!state.schedule) { toast('请先导入课表'); return; }
+    persistCalendarName();
+    Notifs.downloadICS(state.schedule, {
+      minutesBefore: state.settings.notifMinutesBefore,
+      calendarName: state.settings.calendarName || '我的课表',
+      filename: 'calendar.ics'
+    });
+    toast('已生成 calendar.ics，请放到你的 GitHub 仓库');
   }
 
   async function onToggleNotifs(e) {
