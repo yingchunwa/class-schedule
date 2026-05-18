@@ -1,5 +1,5 @@
 // Service Worker: Cache-First for app shell so the PWA works offline.
-const CACHE = 'classSchedule-v4';
+const CACHE = 'classSchedule-v5';
 const ASSETS = [
   './',
   './index.html',

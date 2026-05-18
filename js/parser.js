@@ -89,14 +89,17 @@ const Parser = (() => {
       throw new Error('无法推断第 1 周周一的日期，请在设置中手动指定');
     }
 
-    // 4) Find all week-number rows: col B is integer in [1, 30] AND col C is numeric.
+    // 4) Find all week-number rows: col B is an integer in [1, 40] AND at least one
+    //    of the weekday-number cells (C/E/G/I/K/M/O) is numeric. The "any of" check
+    //    matters for weeks that start mid-week (e.g. July week 18 starts Wed because
+    //    July 1, 2026 is a Wednesday → Mon/Tue cells are empty).
+    const DAY_NUM_COLS = [2, 4, 6, 8, 10, 12, 14];
     const weekRows = [];
     for (let r = 0; r < stopRow; r++) {
       const b = aoa[r]?.[1];
-      const c = aoa[r]?.[2];
-      if (Number.isInteger(b) && b >= 1 && b <= 40 && typeof c === 'number') {
-        weekRows.push({ row: r, week: b });
-      }
+      if (!(Number.isInteger(b) && b >= 1 && b <= 40)) continue;
+      const hasDayNumber = DAY_NUM_COLS.some(col => typeof aoa[r]?.[col] === 'number');
+      if (hasDayNumber) weekRows.push({ row: r, week: b });
     }
     if (weekRows.length === 0) {
       throw new Error('未找到任何周次行');
@@ -128,8 +131,10 @@ const Parser = (() => {
           const startTime = `${pad2(+m[1])}:${m[2]}`;
           const endTime = `${pad2(+m[3])}:${m[4]}`;
           const course = cellStr(aoa[r - 1]?.[col]);
-          const room = cellStr(aoa[r + 1]?.[col]);
-          if (!course || !room) continue;
+          const rawRoom = cellStr(aoa[r + 1]?.[col]);
+          if (!course) continue;
+          // Room can be missing (e.g., exams listed without a venue) — fall back gracefully.
+          const room = rawRoom || '教室待定';
 
           const key = `${dateIso}|${startTime}|${course}|${room}`;
           if (seen.has(key)) continue;
