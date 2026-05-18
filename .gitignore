@@ -1,0 +1,11 @@
+~$*
+*.tmp
+.DS_Store
+Thumbs.db
+node_modules/
+
+# 包含 TA/老师个人信息的源课表文件，绝不上传
+*.xlsx
+
+# Claude Code 本地配置
+.claude/
