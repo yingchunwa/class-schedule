@@ -5,7 +5,8 @@ const Storage = (() => {
   const DEFAULT_SETTINGS = {
     notifEnabled: false,
     notifMinutesBefore: 30,
-    weekOneOverride: null, // ISO date string if user manually corrected
+    weekOneOverride: null,         // ISO date string if user manually corrected
+    calendarName: '我的课表',       // 用作 .ics 的 X-WR-CALNAME 与 CATEGORIES
   };
 
   return {

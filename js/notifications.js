@@ -19,6 +19,7 @@ const Notifs = (() => {
   function buildICS(schedule, opts = {}) {
     const minutesBefore = opts.minutesBefore ?? 30;
     const fromIso = opts.fromIso;
+    const calName = (opts.calendarName || '我的课表').trim() || '我的课表';
     const TZID = 'Asia/Shanghai';
     const lines = [
       'BEGIN:VCALENDAR',
@@ -26,7 +27,9 @@ const Notifs = (() => {
       'PRODID:-//classSchedule//PWA//ZH',
       'CALSCALE:GREGORIAN',
       'METHOD:PUBLISH',
-      'X-WR-CALNAME:我的课表',
+      'X-WR-CALNAME:' + escapeIcs(calName),
+      'X-WR-CALDESC:' + escapeIcs(calName),
+      'NAME:' + escapeIcs(calName),
       'X-WR-TIMEZONE:' + TZID,
       // 中国不使用夏令时，VTIMEZONE 只需一个 STANDARD 块
       'BEGIN:VTIMEZONE',
@@ -52,6 +55,7 @@ const Notifs = (() => {
         `SUMMARY:${escapeIcs(c.course)}`,
         `LOCATION:${escapeIcs(c.room)}`,
         `DESCRIPTION:${escapeIcs('第 ' + c.week + ' 周')}`,
+        `CATEGORIES:${escapeIcs(calName)}`,
         'BEGIN:VALARM',
         'ACTION:DISPLAY',
         `TRIGGER:-PT${minutesBefore}M`,
@@ -70,7 +74,8 @@ const Notifs = (() => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `我的课表-${new Date().toISOString().slice(0, 10)}.ics`;
+    const safeName = (opts.calendarName || '我的课表').replace(/[\\/:*?"<>|]/g, '');
+    a.download = `${safeName}-${new Date().toISOString().slice(0, 10)}.ics`;
     document.body.appendChild(a);
     a.click();
     setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);

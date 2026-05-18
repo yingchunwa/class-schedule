@@ -146,6 +146,7 @@
   function renderSettings() {
     const wInput = document.getElementById('week-one-date');
     wInput.value = state.schedule?.weekOneMonday || '';
+    document.getElementById('calendar-name').value = state.settings.calendarName || '我的课表';
     document.getElementById('enable-notifs').checked = !!state.settings.notifEnabled;
     const meta = document.getElementById('meta-info');
     if (state.schedule) {
@@ -203,11 +204,17 @@
 
   function onExportIcs() {
     if (!state.schedule) { toast('请先导入课表'); return; }
-    // Default: export from today onwards to keep file small & relevant.
+    // 把当前输入框里的分类名先存起来
+    const nameInput = document.getElementById('calendar-name').value.trim();
+    if (nameInput && nameInput !== state.settings.calendarName) {
+      state.settings.calendarName = nameInput;
+      Storage.saveSettings(state.settings);
+    }
     const todayIso = Scheduler.isoDate(new Date());
     Notifs.downloadICS(state.schedule, {
       fromIso: todayIso,
-      minutesBefore: state.settings.notifMinutesBefore
+      minutesBefore: state.settings.notifMinutesBefore,
+      calendarName: state.settings.calendarName || '我的课表'
     });
     toast('已生成 .ics，请打开它导入到日历');
   }
