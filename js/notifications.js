@@ -18,14 +18,26 @@ const Notifs = (() => {
 
   function buildICS(schedule, opts = {}) {
     const minutesBefore = opts.minutesBefore ?? 30;
-    const fromIso = opts.fromIso; // optional: only events on/after this date
+    const fromIso = opts.fromIso;
+    const TZID = 'Asia/Shanghai';
     const lines = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
       'PRODID:-//classSchedule//PWA//ZH',
       'CALSCALE:GREGORIAN',
       'METHOD:PUBLISH',
-      'X-WR-CALNAME:我的课表'
+      'X-WR-CALNAME:我的课表',
+      'X-WR-TIMEZONE:' + TZID,
+      // 中国不使用夏令时，VTIMEZONE 只需一个 STANDARD 块
+      'BEGIN:VTIMEZONE',
+      'TZID:' + TZID,
+      'BEGIN:STANDARD',
+      'DTSTART:19700101T000000',
+      'TZOFFSETFROM:+0800',
+      'TZOFFSETTO:+0800',
+      'TZNAME:CST',
+      'END:STANDARD',
+      'END:VTIMEZONE'
     ];
     const stamp = new Date().toISOString().replace(/[-:.]/g, '').slice(0, 15) + 'Z';
     for (const c of schedule.classes) {
@@ -35,8 +47,8 @@ const Notifs = (() => {
         'BEGIN:VEVENT',
         `UID:${escapeIcs(uid)}`,
         `DTSTAMP:${stamp}`,
-        `DTSTART:${icsDateTime(c.date, c.startTime)}`,
-        `DTEND:${icsDateTime(c.date, c.endTime)}`,
+        `DTSTART;TZID=${TZID}:${icsDateTime(c.date, c.startTime)}`,
+        `DTEND;TZID=${TZID}:${icsDateTime(c.date, c.endTime)}`,
         `SUMMARY:${escapeIcs(c.course)}`,
         `LOCATION:${escapeIcs(c.room)}`,
         `DESCRIPTION:${escapeIcs('第 ' + c.week + ' 周')}`,
