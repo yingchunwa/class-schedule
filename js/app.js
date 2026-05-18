@@ -19,7 +19,7 @@
     bindSettings();
     render();
     if (state.settings.notifEnabled && state.schedule) {
-      Notifs.scheduleTodayReminders(state.schedule, state.settings);
+      Notifs.scheduleTodayReminders(activeSchedule(), state.settings);
     }
     // Re-render daily across midnight & every 60s for "next class" highlight
     setInterval(() => { if (state.view === 'today' || state.view === 'tomorrow') renderViews(); }, 60000);
@@ -52,6 +52,11 @@
     return '';
   }
 
+  // 返回应用了班级过滤的课表（视图与导出共用）
+  function activeSchedule() {
+    return Scheduler.filterScheduleByGroup(state.schedule, state.settings.groupFilter);
+  }
+
   // ---------- main render ----------
   function render() {
     document.getElementById('topbar-sub').textContent = topbarSub(state.view);
@@ -74,7 +79,7 @@
     const root = document.getElementById('view-today');
     if (!state.schedule) { root.innerHTML = noScheduleEmpty(); return; }
     const now = new Date();
-    const todays = Scheduler.classesOnDate(state.schedule, now);
+    const todays = Scheduler.classesOnDate(activeSchedule(), now);
     if (todays.length === 0) {
       root.innerHTML = `<div class="empty"><div class="icon">☕</div><div>今天没有课</div><div class="small" style="margin-top:8px">好好休息</div></div>`;
       return;
@@ -88,7 +93,7 @@
     const root = document.getElementById('view-tomorrow');
     if (!state.schedule) { root.innerHTML = noScheduleEmpty(); return; }
     const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
-    const cls = Scheduler.classesOnDate(state.schedule, tomorrow);
+    const cls = Scheduler.classesOnDate(activeSchedule(), tomorrow);
     if (cls.length === 0) {
       root.innerHTML = `<div class="empty"><div class="icon">🌙</div><div>明天没有课</div></div>`;
       return;
@@ -100,7 +105,7 @@
     const root = document.getElementById('view-week');
     if (!state.schedule) { root.innerHTML = noScheduleEmpty(); return; }
     const now = new Date();
-    const days = Scheduler.classesThisWeek(state.schedule, now);
+    const days = Scheduler.classesThisWeek(activeSchedule(), now);
     const todayIso = Scheduler.isoDate(now);
     const html = `<div class="week-grid">${days.map(d => {
       const isToday = d.iso === todayIso;
@@ -142,6 +147,19 @@
     document.getElementById('export-ics-named').addEventListener('click', onExportIcsNamed);
     document.getElementById('enable-notifs').addEventListener('change', onToggleNotifs);
     document.getElementById('clear-data').addEventListener('click', onClearData);
+    document.getElementById('group-filter').addEventListener('change', onGroupFilterChange);
+  }
+
+  function onGroupFilterChange(e) {
+    state.settings.groupFilter = e.target.value;
+    Storage.saveSettings(state.settings);
+    render();
+    // 重新排提醒（如果开启了通知）
+    if (state.settings.notifEnabled && state.schedule) {
+      Notifs.scheduleTodayReminders(activeSchedule(), state.settings);
+    }
+    const label = ({ all: '全部课程', G1: 'G1 班 + 合班', G2: 'G2 班 + 合班' })[e.target.value];
+    toast(`已切换到：${label}`);
   }
 
   function renderSettings() {
@@ -149,10 +167,16 @@
     wInput.value = state.schedule?.weekOneMonday || '';
     document.getElementById('calendar-name').value = state.settings.calendarName || '我的课表';
     document.getElementById('enable-notifs').checked = !!state.settings.notifEnabled;
+    document.getElementById('group-filter').value = state.settings.groupFilter || 'all';
     const meta = document.getElementById('meta-info');
     if (state.schedule) {
       const s = state.schedule.stats || {};
-      meta.innerHTML = `已导入 <b>${state.schedule.classes.length}</b> 节课<br>
+      const total = state.schedule.classes.length;
+      const filtered = activeSchedule().classes.length;
+      const filterNote = filtered === total
+        ? `已导入 <b>${total}</b> 节课`
+        : `已导入 <b>${total}</b> 节课（过滤后 <b>${filtered}</b> 节）`;
+      meta.innerHTML = `${filterNote}<br>
         覆盖周次：${(s.weeksSeen || []).join(', ') || '–'}<br>
         覆盖月份：${(s.months || []).join(', ') || '–'}<br>
         第 1 周周一：${state.schedule.weekOneMonday}<br>
@@ -179,7 +203,7 @@
       status.textContent = `成功：解析出 ${parsed.classes.length} 节课，覆盖第 ${parsed.stats.weeksSeen.join(', ')} 周。`;
       toast('课表已更新');
       render();
-      if (state.settings.notifEnabled) Notifs.scheduleTodayReminders(state.schedule, state.settings);
+      if (state.settings.notifEnabled) Notifs.scheduleTodayReminders(activeSchedule(), state.settings);
     } catch (err) {
       console.error(err);
       status.textContent = '失败：' + err.message;
@@ -215,7 +239,7 @@
     if (!state.schedule) { toast('请先导入课表'); return; }
     persistCalendarName();
     const todayIso = Scheduler.isoDate(new Date());
-    Notifs.downloadICS(state.schedule, {
+    Notifs.downloadICS(activeSchedule(), {
       fromIso: todayIso,
       minutesBefore: state.settings.notifMinutesBefore,
       calendarName: state.settings.calendarName || '我的课表'
@@ -227,7 +251,7 @@
   function onExportIcsNamed() {
     if (!state.schedule) { toast('请先导入课表'); return; }
     persistCalendarName();
-    Notifs.downloadICS(state.schedule, {
+    Notifs.downloadICS(activeSchedule(), {
       minutesBefore: state.settings.notifMinutesBefore,
       calendarName: state.settings.calendarName || '我的课表',
       filename: 'calendar.ics'
@@ -248,7 +272,7 @@
     state.settings.notifEnabled = checked;
     Storage.saveSettings(state.settings);
     if (checked && state.schedule) {
-      Notifs.scheduleTodayReminders(state.schedule, state.settings);
+      Notifs.scheduleTodayReminders(activeSchedule(), state.settings);
       toast('已为今日剩余课程排好提醒');
     } else {
       Notifs.clearScheduled();

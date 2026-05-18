@@ -7,6 +7,7 @@ const Storage = (() => {
     notifMinutesBefore: 30,
     weekOneOverride: null,         // ISO date string if user manually corrected
     calendarName: '我的课表',       // 用作 .ics 的 X-WR-CALNAME 与 CATEGORIES
+    groupFilter: 'all',            // 'all' | 'G1' | 'G2' — 班级过滤
   };
 
   return {

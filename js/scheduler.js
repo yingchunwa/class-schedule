@@ -82,6 +82,28 @@ const Scheduler = (() => {
     return updated;
   }
 
+  // 班级过滤：返回该课程是否应该在该 group 下显示
+  // 规则：
+  //   - 课程带 G2 → 选 G2 时显示，选 G1 时根据是否也带 G1 决定
+  //   - 课程带 G1 → 反之
+  //   - 不带 G1/G2（合班课，如 'Embedded C Exam'）→ 永远显示
+  function keepForGroup(course, group) {
+    if (group === 'all') return true;
+    const hasG1 = /\bG1\b/i.test(course);
+    const hasG2 = /\bG2\b/i.test(course);
+    if (group === 'G2') return hasG2 || !hasG1;
+    if (group === 'G1') return hasG1 || !hasG2;
+    return true;
+  }
+
+  function filterScheduleByGroup(schedule, group) {
+    if (!schedule || !group || group === 'all') return schedule;
+    return {
+      ...schedule,
+      classes: schedule.classes.filter(c => keepForGroup(c.course, group))
+    };
+  }
+
   return {
     isoDate,
     jsWeekday,
@@ -90,6 +112,8 @@ const Scheduler = (() => {
     nextClass,
     currentOrPast,
     applyWeekOneOverride,
+    keepForGroup,
+    filterScheduleByGroup,
     WEEKDAY_CN
   };
 })();

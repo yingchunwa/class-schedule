@@ -32,6 +32,16 @@
     </div>
 
     <div class="card">
+      <h2>我的班级</h2>
+      <p class="muted small">选择你的班级，所有视图和日历导出只显示该班课程 + 合班课程（不带 G1/G2 前缀的）。</p>
+      <select id="group-filter" style="width:100%;">
+        <option value="all">全部（不过滤）</option>
+        <option value="G1">仅 G1 班（含合班课）</option>
+        <option value="G2">仅 G2 班（含合班课）</option>
+      </select>
+    </div>
+
+    <div class="card">
       <h2>第 1 周周一日期</h2>
       <p class="muted">如果"今天"显示的不对，可能是开学日期推断错误，手动改一下。</p>
       <input type="date" id="week-one-date" />
